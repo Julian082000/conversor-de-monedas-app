@@ -13,13 +13,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LogoConversor } from "../src/components/LogoConversor";
-import { obtenerSesion, guardarSesion } from "../src/auth/sesion";
-import { peticionApi } from "../src/api/cliente";
+import { obtenerToken, guardarSesion } from "../src/auth/sesion";
+import { apiFetch } from "../src/api/cliente";
 import { useTema } from "../src/theme/TemaContext";
 
 export default function PantallaLogin() {
   const router = useRouter();
-  const { colores } = useTema();
+  const { tema } = useTema();
   const [modoRegistro, setModoRegistro] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,8 +28,8 @@ export default function PantallaLogin() {
   const [verificando, setVerificando] = useState(true);
 
   useEffect(() => {
-    obtenerSesion().then((sesion) => {
-      if (sesion?.token) {
+    obtenerToken().then((token) => {
+      if (token) {
         router.replace("/conversor");
       } else {
         setVerificando(false);
@@ -45,14 +45,14 @@ export default function PantallaLogin() {
     setCargando(true);
     try {
       const ruta = modoRegistro ? "/api/auth/registro" : "/api/auth/login";
-      const datos = await peticionApi<{
-        token: string;
-        refreshToken: string;
-        email: string;
-      }>(ruta, {
+      const res = await apiFetch(ruta, {
         method: "POST",
         body: JSON.stringify({ email: email.trim(), password }),
       });
+      const datos = await res.json();
+      if (!res.ok) {
+        throw new Error(datos?.error || "Credenciales inválidas");
+      }
       await guardarSesion(datos.token, datos.refreshToken, datos.email || email.trim());
       router.replace("/conversor");
     } catch (err: unknown) {
@@ -65,15 +65,15 @@ export default function PantallaLogin() {
 
   if (verificando) {
     return (
-      <View style={[styles.centrado, { backgroundColor: colores.fondo }]}>
-        <ActivityIndicator size="large" color={colores.primario} />
+      <View style={[styles.centrado, { backgroundColor: tema.fondo }]}>
+        <ActivityIndicator size="large" color={tema.primario} />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colores.fondo }}
+      style={{ flex: 1, backgroundColor: tema.fondo }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 20}
     >
@@ -82,51 +82,51 @@ export default function PantallaLogin() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.tarjeta, { backgroundColor: colores.tarjeta, borderColor: colores.borde }]}>
+        <View style={[styles.tarjeta, { backgroundColor: tema.tarjeta, borderColor: tema.borde }]}>
           <LogoConversor />
 
-          <Text style={[styles.titulo, { color: colores.texto }]}>
+          <Text style={[styles.titulo, { color: tema.texto }]}>
             Conversor Offline-First
           </Text>
-          <Text style={[styles.subtitulo, { color: colores.textoSecundario }]}>
+          <Text style={[styles.subtitulo, { color: tema.subtexto }]}>
             {modoRegistro ? "Crea tu cuenta para sincronizar divisas" : "Inicia sesión para gestionar tus tasas"}
           </Text>
 
-          <Text style={[styles.etiqueta, { color: colores.texto }]}>Correo electrónico</Text>
+          <Text style={[styles.etiqueta, { color: tema.texto }]}>Correo electrónico</Text>
           <TextInput
             style={[
               styles.input,
               {
-                backgroundColor: colores.fondo,
-                color: colores.texto,
-                borderColor: colores.borde,
+                backgroundColor: tema.inputFondo,
+                color: tema.texto,
+                borderColor: tema.borde,
               },
             ]}
             placeholder="usuario@correo.com"
-            placeholderTextColor={colores.textoSecundario}
+            placeholderTextColor={tema.subtexto}
             autoCapitalize="none"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
           />
 
-          <Text style={[styles.etiqueta, { color: colores.texto }]}>Contraseña</Text>
+          <Text style={[styles.etiqueta, { color: tema.texto }]}>Contraseña</Text>
           <View
             style={[
               styles.contenedorClave,
-              { backgroundColor: colores.fondo, borderColor: colores.borde },
+              { backgroundColor: tema.inputFondo, borderColor: tema.borde },
             ]}
           >
             <TextInput
-              style={[styles.inputClave, { color: colores.texto }]}
+              style={[styles.inputClave, { color: tema.texto }]}
               placeholder="Mínimo 6 caracteres"
-              placeholderTextColor={colores.textoSecundario}
+              placeholderTextColor={tema.subtexto}
               secureTextEntry={!verClave}
               value={password}
               onChangeText={setPassword}
             />
             <Pressable onPress={() => setVerClave(!verClave)} style={styles.botonOjo}>
-              <Text style={{ color: colores.primario, fontWeight: "600", fontSize: 13 }}>
+              <Text style={{ color: tema.primario, fontWeight: "600", fontSize: 13 }}>
                 {verClave ? "Ocultar" : "Ver"}
               </Text>
             </Pressable>
@@ -135,7 +135,7 @@ export default function PantallaLogin() {
           <Pressable
             onPress={manejarEnvio}
             disabled={cargando}
-            style={[styles.botonPrincipal, { backgroundColor: colores.primario, opacity: cargando ? 0.7 : 1 }]}
+            style={[styles.botonPrincipal, { backgroundColor: tema.primario, opacity: cargando ? 0.7 : 1 }]}
           >
             {cargando ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -147,7 +147,7 @@ export default function PantallaLogin() {
           </Pressable>
 
           <Pressable onPress={() => setModoRegistro(!modoRegistro)} style={styles.enlaceCambio}>
-            <Text style={{ color: colores.primario, fontWeight: "600", textAlign: "center" }}>
+            <Text style={{ color: tema.primario, fontWeight: "600", textAlign: "center" }}>
               {modoRegistro ? "¿Ya tienes cuenta? Inicia sesión" : "¿No tienes cuenta? Regístrate aquí"}
             </Text>
           </Pressable>
