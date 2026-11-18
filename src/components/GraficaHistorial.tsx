@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Polyline, Circle } from "react-native-svg";
+import { useTema } from "../theme/TemaContext";
 
 interface Punto {
   fecha: string;
@@ -8,10 +9,14 @@ interface Punto {
 }
 
 export function GraficaHistorial({ puntos, moneda }: { puntos: Punto[]; moneda: string }) {
+  const { tema } = useTema();
+
   if (puntos.length < 2) {
     return (
-      <View style={styles.caja}>
-        <Text style={styles.texto}>Historial de 7 días disponible al conectar con la red.</Text>
+      <View style={[styles.caja, { backgroundColor: tema.tarjeta }]}>
+        <Text style={[styles.texto, { color: tema.subtexto }]}>
+          Historial de 7 días disponible al conectar con la red.
+        </Text>
       </View>
     );
   }
@@ -30,28 +35,30 @@ export function GraficaHistorial({ puntos, moneda }: { puntos: Punto[]; moneda: 
   });
 
   return (
-    <View style={styles.caja}>
-      <Text style={styles.titulo}>Últimos 7 días ({moneda})</Text>
+    <View style={[styles.caja, { backgroundColor: tema.tarjeta }]}>
+      <Text style={[styles.titulo, { color: tema.texto }]}>Últimos 7 días ({moneda})</Text>
       <Svg width={ancho} height={alto}>
-        <Polyline fill="none" stroke="#1E40AF" strokeWidth="3" points={coords.join(" ")} />
+        <Polyline fill="none" stroke={tema.primario} strokeWidth="3" points={coords.join(" ")} />
         {coords.map((c, idx) => {
           const [cx, cy] = c.split(",");
-          return <Circle key={idx} cx={cx} cy={cy} r="4" fill="#1D4ED8" />;
+          return <Circle key={idx} cx={cx} cy={cy} r="4" fill={tema.primario} />;
         })}
       </Svg>
       <View style={styles.pie}>
-        <Text style={styles.fecha}>{puntos[0]?.fecha}</Text>
-        <Text style={styles.fecha}>Mín: {min.toFixed(4)} | Máx: {max.toFixed(4)}</Text>
-        <Text style={styles.fecha}>{puntos[puntos.length - 1]?.fecha}</Text>
+        <Text style={[styles.fecha, { color: tema.subtexto }]}>{puntos[0]?.fecha}</Text>
+        <Text style={[styles.fecha, { color: tema.subtexto }]}>
+          Mín: {min.toFixed(4)} | Máx: {max.toFixed(4)}
+        </Text>
+        <Text style={[styles.fecha, { color: tema.subtexto }]}>{puntos[puntos.length - 1]?.fecha}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  caja: { backgroundColor: "#F8FAFC", padding: 14, borderRadius: 12, marginTop: 14, alignItems: "center" },
-  titulo: { fontWeight: "700", color: "#0F172A", marginBottom: 8 },
-  texto: { color: "#64748B", fontSize: 13 },
+  caja: { padding: 14, borderRadius: 14, marginTop: 14, alignItems: "center", elevation: 2 },
+  titulo: { fontWeight: "700", marginBottom: 8 },
+  texto: { fontSize: 13 },
   pie: { flexDirection: "row", justifyContent: "space-between", width: "100%", marginTop: 6 },
-  fecha: { fontSize: 11, color: "#475569" },
+  fecha: { fontSize: 11 },
 });
