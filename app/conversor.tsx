@@ -18,12 +18,32 @@ import {
 import { calcularMontoConvertido, ejecutarSincronizacion } from "../src/sync/motor";
 import { GraficaHistorial } from "../src/components/GraficaHistorial";
 
-const MONEDAS = ["USD", "EUR", "GBP", "MXN", "BRL", "CAD", "JPY", "CHF"];
+interface InfoMoneda {
+  codigo: string;
+  bandera: string;
+  nombre: string;
+}
+
+const MONEDAS: InfoMoneda[] = [
+  { codigo: "USD", bandera: "🇺🇸", nombre: "Dólar EE.UU." },
+  { codigo: "COP", bandera: "🇨🇴", nombre: "Peso Colombiano" },
+  { codigo: "EUR", bandera: "🇪🇺", nombre: "Euro" },
+  { codigo: "HKD", bandera: "🇭🇰", nombre: "Dólar Hongkonés" },
+  { codigo: "MXN", bandera: "🇲🇽", nombre: "Peso Mexicano" },
+  { codigo: "GBP", bandera: "🇬🇧", nombre: "Libra Esterlina" },
+  { codigo: "BRL", bandera: "🇧🇷", nombre: "Real Brasileño" },
+  { codigo: "CAD", bandera: "🇨🇦", nombre: "Dólar Canadiense" },
+  { codigo: "JPY", bandera: "🇯🇵", nombre: "Yen Japonés" },
+  { codigo: "CHF", bandera: "🇨🇭", nombre: "Franco Suizo" },
+];
+
+const obtenerBandera = (codigo: string) =>
+  MONEDAS.find((m) => m.codigo === codigo)?.bandera ?? "💱";
 
 export default function PantallaConversor() {
   const router = useRouter();
   const [base, setBase] = useState("USD");
-  const [destino, setDestino] = useState("EUR");
+  const [destino, setDestino] = useState("COP");
   const [monto, setMonto] = useState("100");
   const [tasas, setTasas] = useState<Record<string, number>>({});
   const [fechaTasa, setFechaTasa] = useState("");
@@ -112,6 +132,8 @@ export default function PantallaConversor() {
 
   const tasaActual = base === destino ? 1 : (tasas[destino] ?? 0);
   const resultado = calcularMontoConvertido(Number(monto), tasaActual);
+  const infoBase = MONEDAS.find((m) => m.codigo === base);
+  const infoDestino = MONEDAS.find((m) => m.codigo === destino);
 
   return (
     <ScrollView style={styles.contenedor}>
@@ -126,7 +148,9 @@ export default function PantallaConversor() {
 
       <GestureDetector gesture={gestoSwipe}>
         <View style={styles.tarjeta}>
-          <Text style={styles.etiqueta}>Monto en {base}</Text>
+          <Text style={styles.etiqueta}>
+            Monto en {infoBase?.bandera} {base} ({infoBase?.nombre})
+          </Text>
           <TextInput
             style={styles.inputMonto}
             keyboardType="numeric"
@@ -136,11 +160,13 @@ export default function PantallaConversor() {
           <View style={styles.filaMonedas}>
             {MONEDAS.map((m) => (
               <TouchableOpacity
-                key={`b-${m}`}
-                style={[styles.chip, base === m && styles.chipActivo]}
-                onPress={() => setBase(m)}
+                key={`b-${m.codigo}`}
+                style={[styles.chip, base === m.codigo && styles.chipActivo]}
+                onPress={() => setBase(m.codigo)}
               >
-                <Text style={base === m ? styles.chipTextoActivo : styles.chipTexto}>{m}</Text>
+                <Text style={base === m.codigo ? styles.chipTextoActivo : styles.chipTexto}>
+                  {m.bandera} {m.codigo}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -149,39 +175,47 @@ export default function PantallaConversor() {
             <Text style={styles.btnInvertirTexto}>⇅ Invertir (o agita / desliza)</Text>
           </TouchableOpacity>
 
-          <Text style={styles.etiqueta}>Convertir a {destino}</Text>
+          <Text style={styles.etiqueta}>
+            Convertir a {infoDestino?.bandera} {destino} ({infoDestino?.nombre})
+          </Text>
           <View style={styles.filaMonedas}>
             {MONEDAS.map((m) => (
               <TouchableOpacity
-                key={`d-${m}`}
-                style={[styles.chip, destino === m && styles.chipActivo]}
-                onPress={() => setDestino(m)}
+                key={`d-${m.codigo}`}
+                style={[styles.chip, destino === m.codigo && styles.chipActivo]}
+                onPress={() => setDestino(m.codigo)}
               >
-                <Text style={destino === m ? styles.chipTextoActivo : styles.chipTexto}>{m}</Text>
+                <Text style={destino === m.codigo ? styles.chipTextoActivo : styles.chipTexto}>
+                  {m.bandera} {m.codigo}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
 
           <Text style={styles.resultado}>
-            {resultado.toLocaleString()} {destino}
+            {infoDestino?.bandera} {resultado.toLocaleString()} {destino}
           </Text>
           <Text style={styles.subtexto}>
-            1 {base} = {tasaActual} {destino} • Tasa del {fechaTasa || "caché"}
+            1 {infoBase?.bandera} {base} = {tasaActual} {infoDestino?.bandera} {destino} • Tasa del {fechaTasa || "caché"}
           </Text>
 
           <TouchableOpacity style={styles.btnFav} onPress={agregarFavorito}>
-            <Text style={styles.btnFavTexto}>★ Guardar par {base}/{destino}</Text>
+            <Text style={styles.btnFavTexto}>
+              ★ Guardar par {infoBase?.bandera} {base}/{infoDestino?.bandera} {destino}
+            </Text>
           </TouchableOpacity>
         </View>
       </GestureDetector>
 
-      <GraficaHistorial puntos={historial} moneda={destino} />
+      <GraficaHistorial puntos={historial} moneda={`${infoDestino?.bandera ?? ""} ${destino}`} />
 
       <Text style={styles.subtitulo}>Pares Favoritos (Offline-First)</Text>
       {favoritos.map((f) => (
         <View key={f.id} style={styles.itemFav}>
           <TouchableOpacity onPress={() => { setBase(f.base); setDestino(f.destino); }}>
-            <Text style={styles.favTexto}>{f.base} → {f.destino}</Text>
+            <Text style={styles.favTexto}>
+              {obtenerBandera(f.base)} {f.base} → {obtenerBandera(f.destino)} {f.destino}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => quitarFavorito(f.id)}>
             <Text style={styles.eliminar}>Eliminar</Text>
@@ -207,7 +241,7 @@ const styles = StyleSheet.create({
   chipTextoActivo: { fontWeight: "700", color: "#FFFFFF", fontSize: 12 },
   btnInvertir: { backgroundColor: "#EFF6FF", padding: 10, borderRadius: 10, alignItems: "center", marginVertical: 10 },
   btnInvertirTexto: { color: "#1D4ED8", fontWeight: "700" },
-  resultado: { fontSize: 30, fontWeight: "900", color: "#0F172A", marginTop: 12, textAlign: "center" },
+  resultado: { fontSize: 28, fontWeight: "900", color: "#0F172A", marginTop: 12, textAlign: "center" },
   subtexto: { fontSize: 12, color: "#64748B", textAlign: "center", marginTop: 4 },
   btnFav: { backgroundColor: "#0F172A", padding: 12, borderRadius: 10, alignItems: "center", marginTop: 14 },
   btnFavTexto: { color: "#FFFFFF", fontWeight: "700" },
